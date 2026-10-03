@@ -1,0 +1,2 @@
+# nextjsbff
+Nextj BFF pattern
