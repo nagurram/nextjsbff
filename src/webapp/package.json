@@ -11,6 +11,8 @@
   "dependencies": {
     "next": "16.3.8",
     "next-auth": "^4.24.15",
+    "pino": "^10.4.0",
+    "pino-seq": "^4.0.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },

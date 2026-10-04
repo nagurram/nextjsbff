@@ -37,7 +37,15 @@ docker compose --env-file .env.docker up --build
 
 The script stores the certificate, private key, and IdentityServer PFX under the git-ignored repository-root `certificates` directory, and trusts the certificate for the current Windows user. Compose mounts these files read-only into both containers: Next.js serves HTTPS with the PEM keypair and trusts the certificate for OIDC discovery, while Kestrel serves HTTPS with the PFX. Open `https://localhost:3000`; the browser uses `https://identityserver.localhost:5001` for the OIDC authority, and the Compose network routes that hostname to the IdentityServer container. The certificate private key is local development material only; do not use it in production.
 
-Compose persists IdentityServer signing keys and diagnostics in named volumes. To stop the stack, run `docker compose --env-file .env.docker down`; add `-v` only if you also want to remove the persisted IdentityServer data.
+Compose persists IdentityServer signing keys and diagnostics, and Seq events, in named volumes. To stop the stack, run `docker compose --env-file .env.docker down`; add `-v` only if you also want to remove the persisted application data.
+
+## Search BFF logs in Seq
+
+The Compose stack sends structured BFF request and NextAuth authentication logs to Seq, while continuing to write them to the web app container's standard output. Seq stores its data in the `seq-data` named volume; its ingestion endpoint is available only inside the Compose network.
+
+Open the Seq UI at [http://localhost:8081](http://localhost:8081) and sign in with username `admin` and the `SEQ_ADMIN_PASSWORD` value from `.env.docker`. Seq may ask you to change this initial password on first sign-in. In **Events**, search `service = 'nextjs-bff'` to find BFF events. To focus on errors, search `service = 'nextjs-bff' and @Level = 'Error'`. Select an event to inspect structured properties such as `path`, `statusCode`, `durationMs`, and NextAuth `code`.
+
+The Seq UI port is bound to localhost only, and the ingestion port is not published on the host. Protect `.env.docker`; it contains the Seq admin password and OIDC secrets.
 
 ## Publish Docker images
 

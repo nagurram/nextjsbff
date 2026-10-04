@@ -25,6 +25,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=builder --chown=nextjs:nodejs /app/next.config.ts ./next.config.ts
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/lib/logger.mjs ./lib/logger.mjs
 COPY --chown=nextjs:nodejs server.mjs ./server.mjs
 
 USER nextjs

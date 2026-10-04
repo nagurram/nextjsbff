@@ -1,4 +1,27 @@
 services:
+  seq:
+    image: datalust/seq:latest
+    environment:
+      ACCEPT_EULA: Y
+      SEQ_FIRSTRUN_ADMINPASSWORD: ${SEQ_ADMIN_PASSWORD:?Set SEQ_ADMIN_PASSWORD in .env.docker}
+    ports:
+      - "127.0.0.1:8081:80"
+    expose:
+      - "5341"
+    volumes:
+      - seq-data:/data
+    networks:
+      bff-network: {}
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - bash -c '</dev/tcp/127.0.0.1/5341'
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
   traefik:
     image: traefik:v3.4
     container_name: traefik
@@ -64,6 +87,8 @@ services:
     depends_on:
       identityserver:
         condition: service_healthy
+      seq:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
@@ -74,6 +99,7 @@ services:
       IDENTITY_SERVER_CLIENT_ID: interactive
       IDENTITY_SERVER_CLIENT_SECRET: ${IDENTITY_SERVER_CLIENT_SECRET:?Set IDENTITY_SERVER_CLIENT_SECRET in .env.docker}
       IDENTITY_SERVER_CA_CERT: /certificates/local-cert.pem
+      SEQ_URL: http://seq:5341
     deploy:
       replicas: 3
       resources:
@@ -102,6 +128,7 @@ services:
 volumes:
   identityserver-keys:
   identityserver-diagnostics:
+  seq-data:
 
 networks:
   bff-network:
