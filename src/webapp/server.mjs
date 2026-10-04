@@ -2,10 +2,10 @@ import { createServer } from "node:http";
 import next from "next";
 import { logger } from "./lib/logger.mjs";
 
-const hostname = process.env.HOSTNAME ?? "0.0.0.0";
+const bindHost = process.env.BIND_HOST ?? "0.0.0.0";
 const port = Number.parseInt(process.env.PORT ?? "3000", 10);
 
-const app = next({ dev: false, hostname, port });
+const app = next({ dev: false, hostname: bindHost, port });
 const handle = app.getRequestHandler();
 
 await app.prepare();
@@ -40,6 +40,6 @@ server.on("error", (error) => {
   process.exitCode = 1;
 });
 
-server.listen(port, hostname, () => {
-  logger.info({ hostname, port }, "BFF server listening");
+server.listen(port, bindHost, () => {
+  logger.info({ bindHost, port }, "BFF server listening");
 });

@@ -1,6 +1,8 @@
+import { hostname as getHostname } from "node:os";
 import pino from "pino";
 import { createStream } from "pino-seq";
 
+const instanceHostname = getHostname();
 const streams = [{ stream: process.stdout }];
 
 if (process.env.SEQ_URL) {
@@ -9,6 +11,7 @@ if (process.env.SEQ_URL) {
     additionalProperties: {
       service: "nextjs-bff",
       environment: process.env.NODE_ENV ?? "development",
+      hostname: instanceHostname,
     },
     onError(error) {
       console.error("[seq-logging] Failed to send logs to Seq:", error);
@@ -25,6 +28,7 @@ export const logger = pino(
     base: {
       service: "nextjs-bff",
       environment: process.env.NODE_ENV ?? "development",
+      hostname: instanceHostname,
     },
   },
   pino.multistream(streams),

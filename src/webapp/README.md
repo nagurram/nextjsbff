@@ -41,9 +41,9 @@ Compose persists IdentityServer signing keys and diagnostics, and Seq events, in
 
 ## Search BFF logs in Seq
 
-The Compose stack sends structured BFF request and NextAuth authentication logs to Seq, while continuing to write them to the web app container's standard output. Seq stores its data in the `seq-data` named volume; its ingestion endpoint is available only inside the Compose network.
+The Compose stack sends structured BFF request and NextAuth authentication logs to Seq, while continuing to write them to the web app container's standard output. Each web app replica adds its own Docker container hostname as the `hostname` property on every log event. Seq stores its data in the `seq-data` named volume; its ingestion endpoint is available only inside the Compose network.
 
-Open the Seq UI at [http://localhost:8081](http://localhost:8081) and sign in with username `admin` and the `SEQ_ADMIN_PASSWORD` value from `.env.docker`. Seq may ask you to change this initial password on first sign-in. In **Events**, search `service = 'nextjs-bff'` to find BFF events. To focus on errors, search `service = 'nextjs-bff' and @Level = 'Error'`. Select an event to inspect structured properties such as `path`, `statusCode`, `durationMs`, and NextAuth `code`.
+Open the Seq UI at [http://localhost:8081](http://localhost:8081) and sign in with username `admin` and the `SEQ_ADMIN_PASSWORD` value from `.env.docker`. Seq may ask you to change this initial password on first sign-in. In **Events**, search `service = 'nextjs-bff'` to find BFF events. To isolate one replica, add `and hostname = '<container-hostname>'`, using the event's `hostname` property value. You can also group the event list by `hostname` from the property menu. To focus on errors, search `service = 'nextjs-bff' and @Level = 'Error'`. Select an event to inspect structured properties such as `hostname`, `path`, `statusCode`, `durationMs`, and NextAuth `code`.
 
 The Seq UI port is bound to localhost only, and the ingestion port is not published on the host. Protect `.env.docker`; it contains the Seq admin password and OIDC secrets.
 
