@@ -1,4 +1,30 @@
 services:
+  traefik:
+    image: traefik:v3.4
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=bff-network"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.https.file.directory=/certs"
+      - "--entrypoints.dashboard.address=:8080"
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+    ports:
+      - "127.0.0.1:80:80"
+      - "127.0.0.1:443:443"
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./certificates:/certs:ro
+    networks:
+      bff-network: {}
+
   identityserver:
     build:
       context: ./src/identityserver/identityserver
@@ -9,7 +35,7 @@ services:
       ASPNETCORE_URLS: https://+:${IDENTITY_SERVER_PORT:-5001}
       Kestrel__Certificates__Default__Path: /certificates/local-cert.pfx
       DATA_PROTECTION_KEYS_PATH: /app/keys/data-protection
-      WEBAPP_ORIGIN: https://localhost:${WEBAPP_PORT:-3000}
+      WEBAPP_ORIGIN: ${WEBAPP_ORIGIN:-https://localhost}
       IDENTITY_SERVER_CLIENT_SECRET: ${IDENTITY_SERVER_CLIENT_SECRET:?Set IDENTITY_SERVER_CLIENT_SECRET in .env.docker}
     ports:
       - "127.0.0.1:${IDENTITY_SERVER_PORT:-5001}:${IDENTITY_SERVER_PORT:-5001}"
@@ -18,9 +44,9 @@ services:
       - identityserver-diagnostics:/app/diagnostics
       - ./certificates:/certificates:ro
     networks:
-      default:
+      bff-network:
         aliases:
-          - identityserver.localhost
+          - identityserver
     restart: unless-stopped
     healthcheck:
       test:
@@ -42,20 +68,41 @@ services:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: 3000
-      NEXTAUTH_URL: https://localhost:${WEBAPP_PORT:-3000}
+      NEXTAUTH_URL: https://localhost
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET in .env.docker}
-      IDENTITY_SERVER_ISSUER: https://identityserver.localhost:${IDENTITY_SERVER_PORT:-5001}
+      IDENTITY_SERVER_ISSUER: https://identityserver:5001
       IDENTITY_SERVER_CLIENT_ID: interactive
       IDENTITY_SERVER_CLIENT_SECRET: ${IDENTITY_SERVER_CLIENT_SECRET:?Set IDENTITY_SERVER_CLIENT_SECRET in .env.docker}
       IDENTITY_SERVER_CA_CERT: /certificates/local-cert.pem
-      HTTPS_CERT_FILE: /certificates/local-cert.pem
-      HTTPS_KEY_FILE: /certificates/local-key.pem
-    ports:
-      - "127.0.0.1:${WEBAPP_PORT:-3000}:3000"
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webapp.rule=Host(`localhost`)"
+      - "traefik.http.routers.webapp.entrypoints=websecure"
+      - "traefik.http.routers.webapp.tls=true"
+      - "traefik.http.routers.webapp.tls.certresolver=https"
+      - "traefik.http.services.webapp.loadbalancer.server.port=3000"
+      - "traefik.http.services.webapp.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.services.webapp.loadbalancer.healthcheck.interval=10s"
+      - "traefik.http.services.webapp.loadbalancer.healthcheck.timeout=3s"
     volumes:
       - ./certificates:/certificates:ro
+    networks:
+      bff-network: {}
     restart: unless-stopped
 
 volumes:
   identityserver-keys:
   identityserver-diagnostics:
+
+networks:
+  bff-network:
+    driver: bridge
