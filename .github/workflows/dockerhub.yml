@@ -1,0 +1,83 @@
+name: Build and publish Docker images
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    name: Build and publish images
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_USER: ${{ secrets.DOCKER_USER || github.repository_owner }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Generate web app image tags
+        id: webapp-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_USER }}/nextjsbff-webapp
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and publish web app
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src/webapp
+          file: ./src/webapp/Dockerfile
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.webapp-meta.outputs.tags }}
+          labels: ${{ steps.webapp-meta.outputs.labels }}
+          cache-from: type=gha,scope=webapp
+          cache-to: type=gha,mode=max,scope=webapp
+
+      - name: Generate IdentityServer image tags
+        id: identityserver-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_USER }}/nextjsbff-identityserver
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and publish IdentityServer
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src/identityserver/identityserver
+          file: ./src/identityserver/identityserver/Dockerfile
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.identityserver-meta.outputs.tags }}
+          labels: ${{ steps.identityserver-meta.outputs.labels }}
+          cache-from: type=gha,scope=identityserver
+          cache-to: type=gha,mode=max,scope=identityserver

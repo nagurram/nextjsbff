@@ -1,0 +1,61 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# builds
+dist/
+build/
+out/
+.next/
+
+# .NET specific
+**/bin/
+**/obj/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.vspscc
+*.pdb
+
+# secrets / keys
+**/keys/
+
+# env
+.env
+.env.local
+.env.*.local
+.env.docker
+
+# certificates (dev certs — local dev only)
+/certificates/
+
+# Docker output
+src/identityserver/identityserver/certificates/
+src/identityserver/identityserver/diagnostics/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# test output
+coverage/
+.nyc_output/
+playwright-report/
+
+# editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# typescript
+*.tsbuildinfo
+
+# vercel
+.vercel
